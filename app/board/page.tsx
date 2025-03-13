@@ -1,5 +1,5 @@
 import { Canvas } from "@/components/canvas/Canvas";
-import { CanvasData, Objects } from '@/components/canvas/drawHandler'
+import { CanvasData, Shape } from '@/components/canvas/drawHandler'
 
 export default function Board() {
 
@@ -25,7 +25,7 @@ export default function Board() {
         borderWidthRange = [1, 5],
         jitter = 15
     } = {}): CanvasData => {
-        const objects: Objects[] = [];
+        const objects: Shape[] = [];
     
         for (let i = 0; i < numRectangles; i++) {
             const width = Math.floor(Math.random() * (widthRange[1] - widthRange[0]) + widthRange[0]);
@@ -36,12 +36,12 @@ export default function Board() {
                 height,
                 x: Math.floor(Math.random() * (positionRange[1] - positionRange[0]) + positionRange[0]),
                 y: Math.floor(Math.random() * (positionRange[1] - positionRange[0]) + positionRange[0]),
-                borderRadius: Math.min(width, height) / 4,
+                borderRadius: 1000,
                 borderWidth: Math.floor(Math.random() * (borderWidthRange[1] - borderWidthRange[0]) + borderWidthRange[0]),
                 color: generateRandomColor(),
                 filled: Math.random() > 0.5,
                 borderColor: generateRandomColor(),
-                layer: -2,
+                layer: i,
             });
         }
     
@@ -60,7 +60,7 @@ export default function Board() {
                 filled: Math.random() > 0.5,
                 borderColor: generateRandomColor(),
                 color: generateRandomColor(),
-                layer: 2
+                layer: i
             });
         }
     
