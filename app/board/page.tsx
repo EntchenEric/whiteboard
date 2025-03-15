@@ -111,7 +111,6 @@ export default function Board() {
         });
     };
 
-    // Function to add more shapes for stress testing
     const addMoreShapes = (count: number = 20) => {
         const newData = generateCanvasData({
             numRectangles: Math.floor(count / 2),
@@ -123,36 +122,31 @@ export default function Board() {
         }));
     };
 
-    // Function to clear all shapes
     const clearShapes = () => {
         setCanvasData({ objects: [] });
         setIsStressTestRunning(false);
     };
 
-    // Stress test function
     const runStressTest = () => {
         if (isStressTestRunning) {
             setIsStressTestRunning(false);
             return;
         }
 
-        // Enable performance metrics for stress test
         if (!showPerformanceMetrics) {
             setShowPerformanceMetrics(true);
         }
 
         setIsStressTestRunning(true);
-        clearShapes(); // Start with a clean canvas
+        clearShapes();
     };
 
-    // Add shapes gradually during stress test
     useEffect(() => {
         if (!isStressTestRunning) return;
 
         const interval = setInterval(() => {
             addMoreShapes(10);
             
-            // Check if we should stop the test
             setCanvasData(prevData => {
                 if (prevData.objects.length >= stressTestCount) {
                     setIsStressTestRunning(false);
@@ -160,7 +154,7 @@ export default function Board() {
                 }
                 return prevData;
             });
-        }, 500); // Add shapes every 500ms
+        }, 1);
 
         return () => clearInterval(interval);
     }, [isStressTestRunning, stressTestCount]);
@@ -190,29 +184,8 @@ export default function Board() {
                 >
                     {showPerformanceMetrics ? 'Hide Metrics' : 'Show Metrics'}
                 </button>
-                
-                <button 
-                    onClick={runStressTest}
-                    className={`px-4 py-2 ${isStressTestRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-purple-500 hover:bg-purple-600'} text-white rounded`}
-                >
-                    {isStressTestRunning ? 'Stop Stress Test' : 'Run Stress Test'}
-                </button>
             </div>
             
-            {/* Stress test configuration */}
-            <div className="mb-4 flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                    <span>Max shapes for stress test:</span>
-                    <input 
-                        type="number" 
-                        value={stressTestCount}
-                        onChange={(e) => setStressTestCount(Math.max(10, parseInt(e.target.value) || 100))}
-                        className="border border-gray-300 rounded px-2 py-1 w-24"
-                        min="10"
-                        max="1000"
-                    />
-                </label>
-            </div>
             
             <div className="border border-gray-300 rounded">
                 <Canvas 

@@ -92,12 +92,10 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         }
     }
 
-    // Export performance data
     const exportPerformanceData = () => {
         performanceMonitor.current.downloadCSV();
     };
 
-    // Log performance stats to console
     const logPerformanceStats = () => {
         performanceMonitor.current.logStats();
     };
@@ -161,27 +159,42 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         setCurrentHoveringSelectHandle(null)
     }
 
-    const scaleShape = (shape: Shape, newX: number, newY: number): Shape => {
-        let newWidth = newX - shape.x;
-        let newHeight = newY - shape.y;
-        let newXPos = shape.x;
-        let newYPos = shape.y;
+    const scaleShape = (
+        shape: Shape,
+        newX: number,
+        newY: number,
+    ): Shape => {
+        let { x, y, width, height } = shape;
     
-        if (newWidth < 0) {
-            newXPos += newWidth;
-            newWidth = Math.abs(newWidth);
-        }
-        if (newHeight < 0) {
-            newYPos += newHeight;
-            newHeight = Math.abs(newHeight);
+        switch (currentHoveringSelectHandle) {
+            case "BL":
+                width = x + width - newX;
+                height = newY - y;
+                x = newX;
+                break;
+            case "TR":
+                width = newX - x;
+                height = y + height - newY;
+                y = newY;
+                break;
+            case "TL":
+                width = x + width - newX;
+                height = y + height - newY;
+                x = newX;
+                y = newY;
+                break;
+            case "BR":
+                width = newX - x;
+                height = newY - y;
+                break;
         }
     
         return {
             ...shape,
-            x: newXPos,
-            y: newYPos,
-            width: newWidth,
-            height: newHeight,
+            x,
+            y,
+            width: Math.abs(width),
+            height: Math.abs(height),
         };
     };
     
