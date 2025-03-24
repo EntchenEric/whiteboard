@@ -48,6 +48,8 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     const [currentHoveringSelectHandle, setCurrentHoveringSelectHandle] = useState<"TL" | "TR" | "BL" | "BR" | null>(null);
     const [cursorStyle, setCursorStyle] = useState<"grab" | "default" | "pointer" | "text" | "move" | "nesw-resize" | "nwse-resize">("default");
     const [rescalingObject, setRescalingObject] = useState<Shape | null>(null);
+    const [redrawCount, setRedrawCount] = useState<number>(0);
+    const [redrawTime, setRedrawTime] = useState<number>(0);
 
     useEffect(() => {
         draw();
@@ -55,6 +57,8 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     }, [canvasData, scrollOffset, selectedObjects, clickTimestamp, currentHoveringSelectHandle, hoveringObject, rescalingObject]);
 
     const draw = () => {
+        setRedrawCount(redrawCount + 1);
+        const t0 = Date.now();
         const canvas = canvasRef.current;
         if (canvas) {
             const context = canvas.getContext('2d');
@@ -71,17 +75,20 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                     else if (object.type == "Circle")
                         drawCircle(context, object);
                 });
-                if (hoveringObject && !selectedObjects?.includes(hoveringObject))
-                    drawDashedSquare(context, [hoveringObject], false, "blue")
-                if (selectedObjects)
+                if (hoveringObject && !selectedObjects?.includes(hoveringObject)){
+                    console.log("drawing dashed square");
+                    drawDashedSquare(context, [hoveringObject], false, "blue");
+                }
+                if (selectedObjects){
+                    console.log("drawing dashed square 2");
                     drawDashedSquare(context, selectedObjects, true, "black");
+                }
                 context.restore();
                 
                 const endTime = performance.now();
                 const currentRenderTime = endTime - startTime;
                 setRenderTime(currentRenderTime);
-                
-                // Record metrics
+
                 if (showPerformanceMetrics) {
                     performanceMonitor.current.recordMetrics(
                         currentRenderTime, 
@@ -90,6 +97,7 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                 }
             }
         }
+        setRedrawTime(redrawTime + Date.now() - t0);
     }
 
     const exportPerformanceData = () => {
@@ -162,7 +170,7 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     const scaleShape = (
         shape: Shape,
         newX: number,
-        newY: number,
+        newY: number
     ): Shape => {
         let { x, y, width, height } = shape;
     
@@ -189,12 +197,22 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                 break;
         }
     
+        if (width < 0) {
+            x += width;
+            width = Math.abs(width);
+        }
+    
+        if (height < 0) {
+            y += height;
+            height = Math.abs(height);
+        }
+    
         return {
             ...shape,
             x,
             y,
-            width: Math.abs(width),
-            height: Math.abs(height),
+            width,
+            height,
         };
     };
     
@@ -247,7 +265,6 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left + scrollOffset.x;
         const y = event.clientY - rect.top + scrollOffset.y;
@@ -255,12 +272,13 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         const context = canvas.getContext('2d');
         if (!context) return;
 
-        setClickTimestamp(event.timeStamp);
-
         if (!rescalingObject) 
             detectSelectionHandleHover(context, x, y);
-        if (rescalingObject)
-            callbacks.onShapeChange(scaleShape(rescalingObject, x, y));
+        if (rescalingObject){
+            const rescaledObject: Shape = scaleShape(rescalingObject, x, y)
+            callbacks.onShapeChange(rescaledObject);
+            setSelectedObjects([rescaledObject]);
+        }
 
     }
 
@@ -271,7 +289,11 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     };
 
     const handleMouseUp = () => {
-        setRescalingObject(null);
+        if (rescalingObject) {
+            setSelectedObjects([rescalingObject])
+            setRescalingObject(null);
+            setCursorStyle("default");
+        }
     };
 
     return (
@@ -291,6 +313,12 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                 position: 'relative',
             }}
         >
+            <div>
+                Redraw Count: {redrawCount}
+            </div>
+            <div>
+                Redraw Time: {Math.round(((redrawTime / redrawCount) + Number.EPSILON) * 10000) / 10000}ms
+            </div>
             <canvas ref={canvasRef} width={1000} height={1000} />
             <PerformanceMetrics 
                 canvasData={canvasData} 

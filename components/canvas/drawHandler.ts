@@ -46,9 +46,8 @@ const DASH_DISTANCE = 2;
 const PADDING = 3;
 const LINE_WIDTH = 1.5;
 const BORDER_RADIUS = 5;
-const HANDLE_RADIUS = 6; // Increased handle size for easier selection
+const HANDLE_RADIUS = 6;
 
-// Helper function to calculate bounding box for shapes
 const calculateBoundingBox = (targets: Array<Shape>) => {
     if (!targets.length) return { topX: 0, topY: 0, bottomX: 0, bottomY: 0, width: 0, height: 0 };
     
@@ -114,7 +113,6 @@ const drawDashedSquare = (context: CanvasRenderingContext2D, targets: Array<Shap
 const drawSelectionHandles = (context: CanvasRenderingContext2D, topX: number, topY: number, bottomX: number, bottomY: number) => {
     if (!context) return;
 
-    // Draw the handles with a white fill and black border for better visibility
     const drawHandle = (x: number, y: number) => {
         context.beginPath();
         context.arc(x, y, HANDLE_RADIUS, 0, Math.PI * 2);

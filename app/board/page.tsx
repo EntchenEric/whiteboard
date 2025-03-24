@@ -99,8 +99,6 @@ export default function Board() {
     const [canvasData, setCanvasData] = useState<CanvasData>(initialCanvasData);
 
     const handleActiveShapeChange = (updatedShape: Shape) => {
-        console.log("Rescaling shape:", updatedShape);
-
         setCanvasData((prevCanvasData) => {
             return {
                 ...prevCanvasData,
