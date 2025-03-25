@@ -65,6 +65,7 @@ export default function Board() {
                 filled: Math.random() > 0.5,
                 borderColor: generateRandomColor(),
                 layer: i,
+                rotation: 0
             });
         }
     
@@ -84,7 +85,8 @@ export default function Board() {
                 filled: Math.random() > 0.5,
                 borderColor: generateRandomColor(),
                 color: generateRandomColor(),
-                layer: i
+                layer: i,
+                rotation: 0
             });
         }
     

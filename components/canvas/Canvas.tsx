@@ -26,7 +26,6 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         callbacksRef.current = callbacks;
     }, [callbacks]);
 
-    // Initialize performance monitoring
     useEffect(() => {
         const monitor = performanceMonitor.current;
         
