@@ -37,7 +37,19 @@ interface Circle {
     layer: number;
 }
 
-type Shape = Rectangle | Circle;
+interface Image {
+    id: string;
+    type: "Image";
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+    rotation: number;
+
+    url: string;
+}
+
+type Shape = Rectangle | Circle | Image;
 
 interface CanvasData {
     objects: Array<Shape>
@@ -193,6 +205,21 @@ const drawCircle = (context: CanvasRenderingContext2D, circle: Circle) => {
     context.stroke();
 }
 
-export { drawRectangle, drawCircle, drawDashedSquare, drawTopLSelectionHandle, drawTopRSelectionHandle, drawBottomLSelectionHandle, drawBottomRSelectionHandle }
+const drawImage = (context: CanvasRenderingContext2D, image: { url: string, x: number, y: number, width: number, height: number }) => {
+    if (!context) return;
+    const img = new Image();
+    img.onload = () => {
+        context.drawImage(img, image.x, image.y, image.width, image.height);
+
+        context.beginPath();
+        context.rect(image.x, image.y, image.width, image.height);
+        context.closePath();
+    }
+    img.src = image.url;
+    img.crossOrigin = "anonymous";
+}
+
+
+export { drawRectangle, drawCircle, drawDashedSquare, drawTopLSelectionHandle, drawTopRSelectionHandle, drawBottomLSelectionHandle, drawBottomRSelectionHandle, drawImage }
 
 export type { Rectangle, Circle, Shape, CanvasData }

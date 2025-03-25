@@ -89,6 +89,17 @@ export default function Board() {
                 rotation: 0
             });
         }
+
+        objects.push({
+            id: crypto.randomUUID(),
+            type: "Image",
+            width: 500,
+            height: 300,
+            x: 20,
+            y: 20,
+            rotation: 0,
+            url: "https://media1.tenor.com/m/K5guLCzKo4cAAAAd/cute-anime-girl.gif"
+        })
     
         return { objects };
     }, [generateRandomColor, getJitteredPosition]);

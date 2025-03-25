@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react';
-import { CanvasData, Shape, drawRectangle, drawCircle, drawDashedSquare, drawTopLSelectionHandle, drawTopRSelectionHandle, drawBottomLSelectionHandle, drawBottomRSelectionHandle } from './drawHandler';
+import { CanvasData, Shape, drawRectangle, drawCircle, drawDashedSquare, drawTopLSelectionHandle, drawTopRSelectionHandle, drawBottomLSelectionHandle, drawBottomRSelectionHandle, drawImage } from './drawHandler';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import PerformanceMonitor from './PerformanceMonitor';
 
@@ -75,6 +75,8 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                         drawRectangle(context, object);
                     else if (object.type == "Circle")
                         drawCircle(context, object);
+                    else if (object.type === "Image")
+                        drawImage(context, object);
                 });
                 if (hoveringObject && !selectedObjects?.includes(hoveringObject)){
                     drawDashedSquare(context, [hoveringObject], false, "blue");
@@ -124,21 +126,33 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         for (let i = 0; i < canvasData.objects.length; i++) {
             const object = canvasData.objects[i];
     
-            context.beginPath();
-    
             if (object.type === "Rectangle") {
+                context.beginPath();
                 drawRectangle(context, object);
+                if (context.isPointInPath(x, y)) {
+                    hitObjects.push(object);
+                }
             } else if (object.type === "Circle") {
+                context.beginPath();
                 drawCircle(context, object);
-            }
-    
-            if (context.isPointInPath(x, y)) {
-                hitObjects.push(object);
+                if (context.isPointInPath(x, y)) {
+                    hitObjects.push(object);
+                }
+            } else if (object.type === "Image") {
+                if (
+                    x >= object.x &&
+                    x <= object.x + object.width &&
+                    y >= object.y &&
+                    y <= object.y + object.height
+                ) {
+                    hitObjects.push(object);
+                }
             }
         }
     
         return hitObjects;
     };
+    
 
     const detectSelectionHandleHover = (context: CanvasRenderingContext2D, x: number, y: number) => {
         if (!selectedObjects) return;
