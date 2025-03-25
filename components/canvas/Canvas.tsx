@@ -46,9 +46,11 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     const [clickTimestamp, setClickTimestamp] = useState<undefined | number>(undefined);
     const [currentHoveringSelectHandle, setCurrentHoveringSelectHandle] = useState<"TL" | "TR" | "BL" | "BR" | null>(null);
     const [cursorStyle, setCursorStyle] = useState<"grab" | "default" | "pointer" | "text" | "move" | "nesw-resize" | "nwse-resize">("default");
-    const [rescalingObject, setRescalingObject] = useState<Shape | null>(null);
+    const [rescalingObject, setRescalingObject] = useState<Array<Shape> | null>(null);
     const [redrawCount, setRedrawCount] = useState<number>(0);
     const [redrawTime, setRedrawTime] = useState<number>(0);
+    const [movingObject, setMovingObject] = useState<Array<Shape> | null>(null);
+    const lastMousePosition = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
         draw();
@@ -165,55 +167,6 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
 
         setCurrentHoveringSelectHandle(null)
     }
-
-    const scaleShape = (
-        shape: Shape,
-        newX: number,
-        newY: number
-    ): Shape => {
-        let { x, y, width, height } = shape;
-    
-        switch (currentHoveringSelectHandle) {
-            case "BL":
-                width = x + width - newX;
-                height = newY - y;
-                x = newX;
-                break;
-            case "TR":
-                width = newX - x;
-                height = y + height - newY;
-                y = newY;
-                break;
-            case "TL":
-                width = x + width - newX;
-                height = y + height - newY;
-                x = newX;
-                y = newY;
-                break;
-            case "BR":
-                width = newX - x;
-                height = newY - y;
-                break;
-        }
-    
-        if (width < 0) {
-            x += width;
-            width = Math.abs(width);
-        }
-    
-        if (height < 0) {
-            y += height;
-            height = Math.abs(height);
-        }
-    
-        return {
-            ...shape,
-            x,
-            y,
-            width,
-            height,
-        };
-    };
     
     const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
         if (containerRef.current) {
@@ -261,35 +214,135 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
             });
     };
 
+    const scaleObjects = (dx: number, dy: number) => {
+        if (!rescalingObject || !currentHoveringSelectHandle) return;
+    
+        rescalingObject.forEach((obj: Shape) => {
+            let newWidth = obj.width;
+            let newHeight = obj.height;
+            let newX = obj.x;
+            let newY = obj.y;
+            let newHandle = currentHoveringSelectHandle;
+    
+            switch (currentHoveringSelectHandle) {
+                case "TL":
+                    newWidth -= dx;
+                    newHeight -= dy;
+                    newX += dx;
+                    newY += dy;
+                    if (newWidth < 0) {
+                        newX += newWidth;
+                        newWidth = Math.abs(newWidth);
+                        newHandle = "TR";
+                    }
+                    if (newHeight < 0) {
+                        newY += newHeight;
+                        newHeight = Math.abs(newHeight);
+                        newHandle = newHandle === "TR" ? "BR" : "BL";
+                    }
+                    break;
+    
+                case "TR":
+                    newWidth += dx;
+                    newHeight -= dy;
+                    newY += dy;
+                    if (newWidth < 0) {
+                        newX += newWidth;
+                        newWidth = Math.abs(newWidth);
+                        newHandle = "TL";
+                    }
+                    if (newHeight < 0) {
+                        newY += newHeight;
+                        newHeight = Math.abs(newHeight);
+                        newHandle = newHandle === "TL" ? "BL" : "BR";
+                    }
+                    break;
+    
+                case "BL":
+                    newWidth -= dx;
+                    newHeight += dy;
+                    newX += dx;
+                    if (newWidth < 0) {
+                        newX += newWidth;
+                        newWidth = Math.abs(newWidth);
+                        newHandle = "BR";
+                    }
+                    if (newHeight < 0) {
+                        newY += newHeight;
+                        newHeight = Math.abs(newHeight);
+                        newHandle = newHandle === "BR" ? "TR" : "TL";
+                    }
+                    break;
+    
+                case "BR":
+                    newWidth += dx;
+                    newHeight += dy;
+                    if (newWidth < 0) {
+                        newX += newWidth;
+                        newWidth = Math.abs(newWidth);
+                        newHandle = "BL";
+                    }
+                    if (newHeight < 0) {
+                        newY += newHeight;
+                        newHeight = Math.abs(newHeight);
+                        newHandle = newHandle === "BL" ? "TL" : "TR";
+                    }
+                    break;
+            }
+    
+            obj.width = newWidth;
+            obj.height = newHeight;
+            obj.x = newX;
+            obj.y = newY;
+    
+            setCurrentHoveringSelectHandle(newHandle);
+    
+            callbacks.onShapeChange(obj);
+        });
+    };
+    
+    
+
     const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left + scrollOffset.x;
         const y = event.clientY - rect.top + scrollOffset.y;
-
+    
         const context = canvas.getContext('2d');
         if (!context) return;
-
-        if (!rescalingObject) 
-            detectSelectionHandleHover(context, x, y);
-        if (rescalingObject){
-            const rescaledObject: Shape = scaleShape(rescalingObject, x, y)
-            callbacks.onShapeChange(rescaledObject);
-            setSelectedObjects([rescaledObject]);
+    
+        if (!lastMousePosition.current) {
+            lastMousePosition.current = { x, y };
+            return;
         }
-
-    }
+    
+        const dx = x - lastMousePosition.current.x;
+        const dy = y - lastMousePosition.current.y;
+        
+        lastMousePosition.current = { x, y };
+    
+        if (!rescalingObject) {
+            detectSelectionHandleHover(context, x, y);
+        }
+    
+        if (rescalingObject) {
+            scaleObjects(dx, dy);
+        }
+    };
 
     const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
         if (currentHoveringSelectHandle && selectedObjects) {
-            setRescalingObject(selectedObjects[0]);
+            setRescalingObject(selectedObjects);
+        } else if (hoveringObject && selectedObjects && selectedObjects.includes(hoveringObject)) {
+            setMovingObject(selectedObjects);
         }
     };
 
     const handleMouseUp = () => {
         if (rescalingObject) {
-            setSelectedObjects([rescalingObject])
+            setSelectedObjects(rescalingObject)
             setRescalingObject(null);
             setCursorStyle("default");
         }
