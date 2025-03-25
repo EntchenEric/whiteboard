@@ -77,11 +77,9 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
                         drawCircle(context, object);
                 });
                 if (hoveringObject && !selectedObjects?.includes(hoveringObject)){
-                    console.log("drawing dashed square");
                     drawDashedSquare(context, [hoveringObject], false, "blue");
                 }
                 if (selectedObjects){
-                    console.log("drawing dashed square 2");
                     drawDashedSquare(context, selectedObjects, true, "black");
                 }
                 context.restore();
@@ -116,7 +114,8 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
             else
                 return setCursorStyle("nesw-resize");
 
-        return setCursorStyle("default");
+        if (hoveringObject && !movingObject)
+            setCursorStyle("pointer")
     }
 
     const detectObjectHit = (context: CanvasRenderingContext2D, x: number, y: number) => {
@@ -300,12 +299,24 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
             callbacks.onShapeChange(obj);
         });
     };
-    
-    
+
+    const moveObjects = (dx: number, dy: number) => {
+        if (movingObject) {
+            setCursorStyle("grab")
+            movingObject.forEach((obj: Shape) => {
+                obj.x += dx;
+                obj.y += dy;
+
+                callbacks.onShapeChange(obj);
+            })
+        }
+    }
+
 
     const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
+    
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left + scrollOffset.x;
         const y = event.clientY - rect.top + scrollOffset.y;
@@ -313,11 +324,26 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         const context = canvas.getContext('2d');
         if (!context) return;
     
+        let foundObject: Shape | null = null;
+    
+        for (let i = canvasData.objects.length - 1; i >= 0; i--) {
+            const object = canvasData.objects[i];
+            if (
+                x >= object.x &&
+                x <= object.x + object.width &&
+                y >= object.y &&
+                y <= object.y + object.height
+            ) {
+                foundObject = object;
+                break;
+            }
+        }
+
         if (!lastMousePosition.current) {
             lastMousePosition.current = { x, y };
             return;
         }
-    
+
         const dx = x - lastMousePosition.current.x;
         const dy = y - lastMousePosition.current.y;
         
@@ -329,14 +355,25 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
     
         if (rescalingObject) {
             scaleObjects(dx, dy);
+        } else if (movingObject) {
+            moveObjects(dx, dy);
+        } else if(hoveringObject && event.buttons === 1) {
+            setMovingObject([hoveringObject]);
+            moveObjects(dx, dy);
+        }
+    
+        if (foundObject !== hoveringObject) {
+            setHoveringObject(foundObject);
         }
     };
+    
 
     const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
         if (currentHoveringSelectHandle && selectedObjects) {
             setRescalingObject(selectedObjects);
         } else if (hoveringObject && selectedObjects && selectedObjects.includes(hoveringObject)) {
             setMovingObject(selectedObjects);
+            setCursorStyle("grab")
         }
     };
 
@@ -344,6 +381,11 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         if (rescalingObject) {
             setSelectedObjects(rescalingObject)
             setRescalingObject(null);
+            setCursorStyle("default");
+        }
+        if (hoveringObject) {
+            setSelectedObjects(movingObject);
+            setMovingObject(null);
             setCursorStyle("default");
         }
     };
