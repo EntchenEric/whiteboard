@@ -98,7 +98,33 @@ export default function Board() {
             x: 20,
             y: 20,
             rotation: 0,
-            url: "https://media1.tenor.com/m/K5guLCzKo4cAAAAd/cute-anime-girl.gif"
+            url: "https://media1.tenor.com/m/J63bVPkM9-kAAAAd/cute-anime.gif",
+            layer: 100,
+        })
+
+
+        objects.push({
+            id: crypto.randomUUID(),
+            type: "Image",
+            width: 500,
+            height: 300,
+            x: 20,
+            y: 320,
+            rotation: 0,
+            url: "https://i.ebayimg.com/images/g/mdwAAOSwrgRlOGGz/s-l1600.jpg",
+            layer: 100,
+        })
+
+        objects.push({
+            id: crypto.randomUUID(),
+            type: "Image",
+            width: 500,
+            height: 300,
+            x: 520,
+            y: 20,
+            rotation: 0,
+            url: "https://media1.tenor.com/m/OofIPxb5imMAAAAC/lep.gif",
+            layer: 100,
         })
     
         return { objects };

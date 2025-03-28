@@ -1,4 +1,5 @@
 import { CSSProperties } from 'react';
+import {loadGifFrames} from "@/lib/utils"
 
 interface Rectangle {
     id: string;
@@ -45,8 +46,8 @@ interface Image {
     x: number;
     y: number;
     rotation: number;
-
     url: string;
+    layer: number;
 }
 
 type Shape = Rectangle | Circle | Image;
@@ -61,6 +62,12 @@ const PADDING = 3;
 const LINE_WIDTH = 1.5;
 const BORDER_RADIUS = 5;
 const HANDLE_RADIUS = 6;
+
+const imageCache = new Map<string, HTMLImageElement>();
+const gifFrameNumberCashe = new Map<string, number>();
+const gifFrameCashe = new Map<string, {frames: string[], delay: number[]}>();
+const timeoutCache = new Map<string, NodeJS.Timeout>();
+const gifFrameImgCashe = new Map<string, HTMLImageElement>();
 
 const calculateBoundingBox = (targets: Array<Shape>) => {
     if (!targets.length) return { topX: 0, topY: 0, bottomX: 0, bottomY: 0, width: 0, height: 0 };
@@ -205,19 +212,113 @@ const drawCircle = (context: CanvasRenderingContext2D, circle: Circle) => {
     context.stroke();
 }
 
-const drawImage = (context: CanvasRenderingContext2D, image: { url: string, x: number, y: number, width: number, height: number }) => {
+const drawImage = async (context: CanvasRenderingContext2D, image: Image) => {
     if (!context) return;
-    const img = new Image();
-    img.onload = () => {
-        context.drawImage(img, image.x, image.y, image.width, image.height);
 
-        context.beginPath();
-        context.rect(image.x, image.y, image.width, image.height);
-        context.closePath();
+    const isGif = image.url.toLowerCase().endsWith(".gif");
+
+    if (isGif) {
+        let gifData = gifFrameCashe.get(image.id);
+
+        if (!gifData) {
+            gifData = await loadGifFrames(image.url);
+            gifFrameCashe.set(image.id, { ...gifData });
+            const img = new Image();
+            img.src = image.url;
+            img.crossOrigin = "anonymous";
+            imageCache.set(image.id, img);
+        }
+
+        if (!gifData || gifData.frames.length === 0) return;
+
+        let frameIndex = gifFrameNumberCashe.get(image.id);
+        if (frameIndex == undefined) {
+            frameIndex = 0;
+            gifFrameNumberCashe.set(image.id, 0)
+        }
+        
+        // Clear any existing animation for this image
+        if (timeoutCache.has(image.id)) {
+            clearTimeout(timeoutCache.get(image.id)!);
+            timeoutCache.delete(image.id);
+        }
+        
+        let isAnimating = true;
+
+        const animateGif = () => {
+            if (!isAnimating) return;
+            
+            if (frameIndex === undefined) frameIndex = 0;
+            
+            let img = gifFrameImgCashe.get(image.id + frameIndex);
+            if (!img) {
+                img = new Image();
+                img.src = gifData!.frames[frameIndex];
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    gifFrameImgCashe.set(image.id + frameIndex, img!);
+                    // Draw the current frame
+                    context.clearRect(image.x, image.y, image.width, image.height);
+                    context.drawImage(img!, image.x, image.y, image.width, image.height);
+                };
+            } else {
+                // Draw the current frame
+                context.clearRect(image.x, image.y, image.width, image.height);
+                context.drawImage(img, image.x, image.y, image.width, image.height);
+            }
+            
+            // Advance to the next frame
+            frameIndex = (frameIndex + 1) % gifData!.frames.length;
+            gifFrameNumberCashe.set(image.id, frameIndex);
+            
+            // Schedule the next frame
+            const delay = gifData!.delay[frameIndex] || 100; // Default to 100ms if no delay specified
+            const timeoutId = setTimeout(animateGif, delay);
+            timeoutCache.set(image.id, timeoutId);
+        };
+
+        // Start the animation and immediately draw the first frame
+        let currentImg = gifFrameImgCashe.get(image.id + frameIndex);
+        if (currentImg) {
+            context.drawImage(currentImg, image.x, image.y, image.width, image.height);
+        } else {
+            const firstImg = new Image();
+            firstImg.src = gifData.frames[frameIndex];
+            firstImg.crossOrigin = "anonymous";
+            firstImg.onload = () => {
+                gifFrameImgCashe.set(image.id + frameIndex, firstImg);
+                context.drawImage(firstImg, image.x, image.y, image.width, image.height);
+            };
+        }
+        
+        // Start animation on the next frame
+        const timeoutId = setTimeout(animateGif, gifData.delay[frameIndex] || 100);
+        timeoutCache.set(image.id, timeoutId);
+        
+        return () => {
+            isAnimating = false;
+            if (timeoutCache.has(image.id)) {
+                clearTimeout(timeoutCache.get(image.id)!);
+                timeoutCache.delete(image.id);
+            }
+        };
+    } else {
+        // Handle static images
+        let img = imageCache.get(image.id);
+
+        if (!img) {
+            img = new Image();
+            img.src = image.url;
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                imageCache.set(image.id, img!);
+                context.drawImage(img!, image.x, image.y, image.width, image.height);
+            };
+        } else {
+            context.drawImage(img, image.x, image.y, image.width, image.height);
+        }
     }
-    img.src = image.url;
-    img.crossOrigin = "anonymous";
-}
+};
 
 
 export { drawRectangle, drawCircle, drawDashedSquare, drawTopLSelectionHandle, drawTopRSelectionHandle, drawBottomLSelectionHandle, drawBottomRSelectionHandle, drawImage }
