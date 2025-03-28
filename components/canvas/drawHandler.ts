@@ -237,7 +237,6 @@ const drawImage = async (context: CanvasRenderingContext2D, image: Image) => {
             gifFrameNumberCashe.set(image.id, 0)
         }
         
-        // Clear any existing animation for this image
         if (timeoutCache.has(image.id)) {
             clearTimeout(timeoutCache.get(image.id)!);
             timeoutCache.delete(image.id);
@@ -257,27 +256,22 @@ const drawImage = async (context: CanvasRenderingContext2D, image: Image) => {
                 img.crossOrigin = "anonymous";
                 img.onload = () => {
                     gifFrameImgCashe.set(image.id + frameIndex, img!);
-                    // Draw the current frame
                     context.clearRect(image.x, image.y, image.width, image.height);
                     context.drawImage(img!, image.x, image.y, image.width, image.height);
                 };
             } else {
-                // Draw the current frame
                 context.clearRect(image.x, image.y, image.width, image.height);
                 context.drawImage(img, image.x, image.y, image.width, image.height);
             }
             
-            // Advance to the next frame
             frameIndex = (frameIndex + 1) % gifData!.frames.length;
             gifFrameNumberCashe.set(image.id, frameIndex);
             
-            // Schedule the next frame
-            const delay = gifData!.delay[frameIndex] || 100; // Default to 100ms if no delay specified
+            const delay = gifData!.delay[frameIndex] || 100;
             const timeoutId = setTimeout(animateGif, delay);
             timeoutCache.set(image.id, timeoutId);
         };
 
-        // Start the animation and immediately draw the first frame
         let currentImg = gifFrameImgCashe.get(image.id + frameIndex);
         if (currentImg) {
             context.drawImage(currentImg, image.x, image.y, image.width, image.height);
@@ -291,7 +285,6 @@ const drawImage = async (context: CanvasRenderingContext2D, image: Image) => {
             };
         }
         
-        // Start animation on the next frame
         const timeoutId = setTimeout(animateGif, gifData.delay[frameIndex] || 100);
         timeoutCache.set(image.id, timeoutId);
         
@@ -303,7 +296,6 @@ const drawImage = async (context: CanvasRenderingContext2D, image: Image) => {
             }
         };
     } else {
-        // Handle static images
         let img = imageCache.get(image.id);
 
         if (!img) {
