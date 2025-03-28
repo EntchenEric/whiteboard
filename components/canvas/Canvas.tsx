@@ -534,7 +534,7 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
             return setSelectedObjects(null);
         }
         
-        const hit = hitObjects[0];
+        const hit = hitObjects[hitObjects.length - 1];
         const isShiftPressed = event.shiftKey;
         
         if (!isShiftPressed && hitObjects.length >= 1) {
@@ -568,7 +568,7 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         if (!context) return;
         
         const hitObjects = detectObjectHit(x, y);
-        const foundObject = hitObjects.length > 0 ? hitObjects[0] : null;
+        const foundObject = hitObjects.length > 0 ? hitObjects[hitObjects.length - 1] : null;
         
         if (foundObject !== hoveringObject) {
             setHoveringObject(foundObject);
@@ -616,7 +616,7 @@ const Canvas = ({ canvasData, callbacks, showPerformanceMetrics = false }: Canva
         const hitObjects = detectObjectHit(x, y);
         
         if (hitObjects.length > 0) {
-            const hitObject = hitObjects[0];
+            const hitObject = hitObjects[hitObjects.length - 1];
             
             if (selectedObjects && selectedObjects.some(obj => obj.id === hitObject.id)) {
                 setMovingObject(selectedObjects);
